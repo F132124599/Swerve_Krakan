@@ -14,11 +14,13 @@ import com.ctre.phoenix6.signals.NeutralModeValue;
 import com.ctre.phoenix6.signals.SensorDirectionValue;
 
 import edu.wpi.first.math.controller.PIDController;
+import edu.wpi.first.math.controller.SimpleMotorFeedforward;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.kinematics.SwerveModulePosition;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Constants.ModuleConstants;
+import frc.robot.Constants.SwerveConstants;
 
 public class SwerveModule extends SubsystemBase {
   /** Creates a new SwerveModule. */
@@ -29,19 +31,27 @@ public class SwerveModule extends SubsystemBase {
   private final CANcoderConfiguration cancoderConfig;
 
   private final PIDController turningPidController;
+  private final PIDController drivePidController;
+  private final SimpleMotorFeedforward driveFeedForward;
 
   private double turningPidOutput;
+  private double drivePidOutput;
+  private double driveFeedForwardPutput;
+  private double driveOutput;
 
 
-  public SwerveModule(int turningMotor_ID, int driveMotor_ID, int absolutedEncoder_ID, boolean turningMotorReverse, boolean driveMotorReverse, double pid_Kp, double pid_Ki, double pid_Kd, double offset) {
+  public SwerveModule(int turningMotor_ID, int driveMotor_ID, int absolutedEncoder_ID, boolean turningMotorReverse, boolean driveMotorReverse, double offset) {
     turningMotor = new com.ctre.phoenix6.hardware.TalonFX(turningMotor_ID);
     driveMotor = new com.ctre.phoenix6.hardware.TalonFX(driveMotor_ID);
 
     absolutedEncoder = new CANcoder(absolutedEncoder_ID);
     cancoderConfig = new CANcoderConfiguration();
 
-    turningPidController = new PIDController(pid_Kp, pid_Ki, pid_Kd);
+    turningPidController = new PIDController(ModuleConstants.turningPidController_Kp, ModuleConstants.turningPidController_Ki, ModuleConstants.turningPidController_Kd);
     turningPidController.enableContinuousInput(ModuleConstants.pidRangeMin, ModuleConstants.pidRangeMax);
+
+    drivePidController = new PIDController(driveMotor_ID, absolutedEncoder_ID, offset);
+    driveFeedForward = new SimpleMotorFeedforward(absolutedEncoder_ID, offset);
 
     cancoderConfig.MagnetSensor.SensorDirection = SensorDirectionValue.CounterClockwise_Positive;
     cancoderConfig.MagnetSensor.AbsoluteSensorRange = AbsoluteSensorRangeValue.Signed_PlusMinusHalf;
@@ -71,11 +81,11 @@ public class SwerveModule extends SubsystemBase {
   }
 
   public double getDriveVelocity() {
-    return driveMotor.getVelocity().getValueAsDouble()*ModuleConstants.driveEncoderRPM2MeterPerSec;
+    return driveMotor.getVelocity().getValueAsDouble()*ModuleConstants.driveEncoderRot2MeterPerSec;
   }
 
   public double getDrivePosition() {
-    return driveMotor.getPosition().getValueAsDouble()*ModuleConstants.driveEncoderRot2Meter;
+    return driveMotor.getPosition().getValueAsDouble()*ModuleConstants.driveEncoderRot2MeterPerSec;
   }
 
   public double getTurningPosition() {
@@ -92,10 +102,18 @@ public class SwerveModule extends SubsystemBase {
   }
 
   public void setState(SwerveModuleState state) {
-    SwerveModuleState optimizeState = SwerveModuleState.optimize(state, getState().angle);
-    turningPidOutput = turningPidController.calculate(getState().angle.getDegrees(), optimizeState.angle.getDegrees());
-    turningMotor.set(turningPidOutput);
-    driveMotor.set(optimizeState.speedMetersPerSecond);
+    // Turn Motor
+      SwerveModuleState optimizedState = SwerveModuleState.optimize(state,getState().angle);
+      double turningMotorOutput = turningPidController.calculate(getState().angle.getDegrees(), optimizedState.angle.getDegrees());
+      turningMotor.set(turningMotorOutput);
+    // Drive motor
+      double driveFeedforwardOutPut = driveFeedForward.calculate(optimizedState.speedMetersPerSecond)/12;
+      double drivePidOutput = drivePidController.calculate(getDriveVelocity() / SwerveConstants.driveEncoderRPM2MeterPerSec, optimizedState.speedMetersPerSecond / SwerveConstants.driveEncoderRPM2MeterPerSec);
+      double driveMotorOutput = driveFeedforwardOutPut + drivePidOutput;
+      this.driveFeedForwardPutput = driveFeedforwardOutPut;
+      this.drivePidOutput = drivePidOutput;
+      this.driveOutput = driveMotorOutput;
+      driveMotor.set(driveMotorOutput);
   }
 
 

@@ -8,6 +8,10 @@ import java.text.FieldPosition;
 
 import com.ctre.phoenix6.configs.Pigeon2Configuration;
 import com.ctre.phoenix6.hardware.Pigeon2;
+import com.pathplanner.lib.auto.AutoBuilder;
+import com.pathplanner.lib.controllers.PPHolonomicDriveController;
+import com.pathplanner.lib.controllers.PPLTVController;
+import com.pathplanner.lib.util.PIDConstants;
 
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
@@ -16,6 +20,7 @@ import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
 import edu.wpi.first.math.kinematics.SwerveDriveOdometry;
 import edu.wpi.first.math.kinematics.SwerveModulePosition;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
+import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.smartdashboard.Field2d;
 import edu.wpi.first.wpilibj.smartdashboard.FieldObject2d;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
@@ -43,9 +48,6 @@ public class SwerveSubsystem extends SubsystemBase {
       SwerveConstants.leftFrontAbsolutedEncoder_ID,
       SwerveConstants.leftFrontTurningReverse,
       SwerveConstants.leftFrontDriveReverse,
-      SwerveConstants.leftFrontPid_Kp,
-      SwerveConstants.leftFrontPid_Ki,
-      SwerveConstants.leftFrontPid_Kd,
       SwerveConstants.leftFrontOffset
             );
     leftBack = new SwerveModule(
@@ -54,9 +56,6 @@ public class SwerveSubsystem extends SubsystemBase {
       SwerveConstants.leftBackAbsolutedEncoder_ID,
       SwerveConstants.leftBackTurningReverse,
       SwerveConstants.leftBackDriveReverse,
-      SwerveConstants.leftbackPid_Kp,
-      SwerveConstants.leftBackPid_Ki,
-      SwerveConstants.leftBackPid_Kd,
       SwerveConstants.leftBackOffset);
     rightFront = new SwerveModule(
       SwerveConstants.rightFrontTurning_ID,
@@ -64,9 +63,6 @@ public class SwerveSubsystem extends SubsystemBase {
       SwerveConstants.rightFrontAbsolutedEncoder_ID,
       SwerveConstants.rightFrontTurningReverse,
       SwerveConstants.rightFrontDriveReverse,
-      SwerveConstants.rightFrontPid_Kp,
-      SwerveConstants.rightFrontPid_Ki,
-      SwerveConstants.rightFrontPid_Kd,
       SwerveConstants.rightFrontOffset);
     rightBack = new SwerveModule(
       SwerveConstants.rightBackTurning_ID,
@@ -74,9 +70,6 @@ public class SwerveSubsystem extends SubsystemBase {
       SwerveConstants.rightBackAbsolutedEncoder_ID,
       SwerveConstants.rightBackTurningReverse,
       SwerveConstants.rightBackDriveReverse,
-      SwerveConstants.rightBackPid_Kp,
-      SwerveConstants.rightBackPid_Ki,
-      SwerveConstants.rightBackPid_Kd,
       SwerveConstants.rightBackOffset);
 
      gyro = new Pigeon2(SwerveConstants.gyro_ID);
@@ -93,6 +86,56 @@ public class SwerveSubsystem extends SubsystemBase {
      odometry = new SwerveDriveOdometry(SwerveConstants.swerveKinematics, getRotation(), getModulesPosition(), getRobotPose());
 
      resetGyro();
+
+     // All other subsystem initialization
+    // ...
+
+    // Load the RobotConfig from the GUI settings. You should probably
+    // store this in your Constants file
+    // RobotConfig config;
+    // try{
+    //   config = RobotConfig.fromGUISettings();
+    // } catch (Exception e) {
+    //   // Handle exception as needed
+    //   e.printStackTrace();
+    // }
+
+    // // Configure AutoBuilder last
+    // AutoBuilder.configure(
+    //         this::getPose, // Robot pose supplier
+    //         this::resetPose, // Method to reset odometry (will be called if your auto has a starting pose)
+    //         this::getRobotRelativeSpeeds, // ChassisSpeeds supplier. MUST BE ROBOT RELATIVE
+    //         (speeds, feedforwards) -> driveRobotRelative(speeds), // Method that will drive the robot given ROBOT RELATIVE ChassisSpeeds. Also optionally outputs individual module feedforwards
+    //         new PPLTVController(0.02), // PPLTVController is the built in path following controller for differential drive trains
+    //         config, // The robot configuration
+    //         () -> {
+    //           // Boolean supplier that controls when the path will be mirrored for the red alliance
+    //           // This will flip the path being followed to the red side of the field.
+    //           // THE ORIGIN WILL REMAIN ON THE BLUE SIDE
+
+    //           var alliance = DriverStation.getAlliance();
+    //           if (alliance.isPresent()) {
+    //             return alliance.get() == DriverStation.Alliance.Red;
+    //           }
+    //           return false;
+    //         },
+    //         this // Reference to this subsystem to set requirements
+    // );
+
+  }
+
+
+  @Override
+  public void periodic() {
+    // This method will be called once per scheduler run
+    odometry.update(getRotation(), getModulesPosition());
+    field.setRobotPose(odometry.getPoseMeters());
+    
+  }
+
+
+  public ChassisSpeeds getChassisSpeed() {
+    return SwerveConstants.swerveKinematics.toChassisSpeeds(getModuleStates());
   }
 
 
@@ -141,18 +184,14 @@ public class SwerveSubsystem extends SubsystemBase {
 
   public void drive(double xSpeed, double ySpeed, double zSpeed, boolean fieldOrient) {
     SwerveModuleState[] state;
+    xSpeed = xSpeed * SwerveConstants.maxDriveSpeed_MeterPerSecond;
+    ySpeed = ySpeed * SwerveConstants.maxDriveSpeed_MeterPerSecond;
+    zSpeed = zSpeed * Math.toRadians(SwerveConstants.maxAngularVelocity_Angle);
     if(fieldOrient) {
       state = SwerveConstants.swerveKinematics.toSwerveModuleStates(ChassisSpeeds.fromRobotRelativeSpeeds(xSpeed, ySpeed, zSpeed, getRotation()));//之後要處理MaxSpeedPerSecond跟MaxRadianPerSecond的問題
     }else{
       state = SwerveConstants.swerveKinematics.toSwerveModuleStates(new ChassisSpeeds(xSpeed, ySpeed, zSpeed));
     }
     setModouleStates(state);
-  }
-
-
-  @Override
-  public void periodic() {
-    // This method will be called once per scheduler run
-    odometry.update(getRotation(), getModulesPosition());
-  }
+  } 
 }

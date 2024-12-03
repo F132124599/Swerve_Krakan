@@ -18,6 +18,7 @@ import edu.wpi.first.math.util.Units;
  */
 public final class Constants {
   public static class OperatorConstants {
+    public static final double kJoystickDeadBand = 0.1;
     public static final int kDriverControllerPort = 0;
   }
 
@@ -37,10 +38,10 @@ public final class Constants {
     public static final double drivePositionConversionFactor = 
     (1/driveGearRatio)*wheelDiameterMeters*Math.PI;
 
-    public static final double driveEncoderRot2Meter = driveGearRatio*Math.PI*wheelDiameterMeters;
-    public static final double turningEncoderRot2Rad = turningGearRatio*2*Math.PI;
-    public static final double driveEncoderRPM2MeterPerSec = driveEncoderRot2Meter/60.0;
-    public static final double turningEncoderRPM2RadPerSec = turningEncoderRot2Rad/60.0;
+    public static final double driveEncoderRot2MeterPerSec = driveGearRatio*Math.PI*wheelDiameterMeters;
+    public static final double turningEncoderRot2RadPerSec = turningGearRatio*2*Math.PI;
+    public static final double driveEncoderRot2MeterPerMin = driveEncoderRot2MeterPerSec*60;
+    public static final double driveEncoderRot2RadPerMin = turningEncoderRot2RadPerSec*60;
 
     public static final double kModuleDistance = 21*0.0254;
 
@@ -51,7 +52,16 @@ public final class Constants {
       new Translation2d(-kModuleDistance/2, -kModuleDistance/2)
     );
 
+    public static final double turningPidController_Kp = 0.012;
+    public static final double turningPidController_Ki = 0;
+    public static final double turningPidController_Kd = 0;
 
+    public static final double drivePidController_Kp = 0;
+    public static final double drivePidController_Ki = 0;
+    public static final double drivePidController_Kd = 0;
+
+    public static final double driveFeedforward_Ks = 0.13;
+    public static final double driveFeedforward_Kv = 2.58;
 
   }
 
@@ -75,21 +85,6 @@ public final class Constants {
     public static final double leftBackOffset = 0;
     public static final double rightFrontOffset = 0;
     public static final double rightBackOffset = 0;
-
-    public static final double leftFrontPid_Kp = 0;
-    public static final double leftbackPid_Kp = 0;
-    public static final double rightFrontPid_Kp = 0;
-    public static final double rightBackPid_Kp = 0;
-
-    public static final double leftFrontPid_Ki = 0;
-    public static final double leftBackPid_Ki = 0;
-    public static final double rightFrontPid_Ki = 0;
-    public static final double rightBackPid_Ki = 0;
-
-    public static final double leftFrontPid_Kd = 0;
-    public static final double leftBackPid_Kd = 0;
-    public static final double rightFrontPid_Kd = 0;
-    public static final double rightBackPid_Kd = 0;
 
     public static final boolean leftFrontTurningReverse = false;
     public static final boolean leftBackTurningReverse = false;
@@ -142,6 +137,7 @@ public final class Constants {
 
     public static final double maxDriveSpeed_MeterPerSecond = 5;
     public static final double kDriveBaseRadius = 14.85 * 0.0254;
+    public static final double maxAngularVelocity_Angle = 32;
 
     
   }
