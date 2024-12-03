@@ -12,6 +12,7 @@ import com.pathplanner.lib.auto.AutoBuilder;
 import com.pathplanner.lib.controllers.PPHolonomicDriveController;
 import com.pathplanner.lib.controllers.PPLTVController;
 import com.pathplanner.lib.util.PIDConstants;
+import com.pathplanner.lib.util.PathPlannerLogging;
 
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
@@ -24,6 +25,7 @@ import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.smartdashboard.Field2d;
 import edu.wpi.first.wpilibj.smartdashboard.FieldObject2d;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import frc.robot.Constants;
 import frc.robot.Constants.SwerveConstants;
 
 public class SwerveSubsystem extends SubsystemBase {
@@ -121,6 +123,40 @@ public class SwerveSubsystem extends SubsystemBase {
     //         },
     //         this // Reference to this subsystem to set requirements
     // );
+
+    // try{
+    //   RobotConfig config = RobotConfig.fromGUISettings();
+
+    //   // Configure AutoBuilder
+    //   AutoBuilder.configure(
+    //     this::getPose, 
+    //     this::resetPose, 
+    //     this::getSpeeds, 
+    //     this::driveRobotRelative, 
+    //     new PPHolonomicDriveController(
+    //       Constants.Swerve.translationConstants,
+    //       Constants.Swerve.rotationConstants
+    //     ),
+    //     config,
+    //     () -> {
+    //         // Boolean supplier that controls when the path will be mirrored for the red alliance
+    //         // This will flip the path being followed to the red side of the field.
+    //         // THE ORIGIN WILL REMAIN ON THE BLUE SIDE
+
+    //         var alliance = DriverStation.getAlliance();
+    //         if (alliance.isPresent()) {
+    //             return alliance.get() == DriverStation.Alliance.Red;
+    //         }
+    //         return false;
+    //     },
+    //     this
+    //   );
+    // }catch(Exception e){
+    //   DriverStation.reportError("Failed to load PathPlanner config and configure AutoBuilder", e.getStackTrace());
+    // }
+
+    // // Set up custom logging to add the current path to a field 2d widget
+    // PathPlannerLogging.setLogActivePathCallback((poses) -> field.getObject("path").setPoses(poses));
 
   }
 
